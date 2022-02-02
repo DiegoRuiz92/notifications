@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 
 class MessageSent extends Notification
 {
@@ -32,7 +33,7 @@ class MessageSent extends Notification
      */
     public function via($notifiable)
     {
-        return ['mail','database'];
+        return ['mail','database','broadcast'];
     }
 
     /**
@@ -54,6 +55,7 @@ class MessageSent extends Notification
         return (new MailMessage)
                     ->subject('Tienes un mensaje nuevo')
                     ->markdown('mail.message', ['message' => $this->message]);
+                    //->markdown('mail.message', ['message' => $this->message]); //Revisar message
     }
 
     /**
@@ -62,11 +64,18 @@ class MessageSent extends Notification
      * @param  mixed  $notifiable
      * @return array
      */
-    public function toDatabase($notifiable)
+    public function toDatabase($notifiable) //$notifiable contains user information to be notified
     {
+        $notifiable->notification +=1; //the information is increased by 1
+        $notifiable->save();
+
         return [
             'url' => route('messages.show', $this->message->id),
             'message' => 'Has recibido un mensaje de ' .  User::find($this->message->from_user_id)->name
         ];
+    }
+
+    public function toBroadcast($notifiable){
+        return new BroadcastMessage([]);
     }
 }
